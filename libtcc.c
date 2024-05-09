@@ -563,6 +563,10 @@ static void error1(int mode, const char *fmt, va_list ap)
     BufferedFile **pf, *f;
     TCCState *s1 = tcc_state;
     CString cs;
+    const char *bred = "\x1b[1;31m", *bwhite = "\x1b[1;37m", *bmagenta = "\x1b[1;35m", *normal = "\x1b[0m";
+    if (!isatty(2)) {
+        bred = bwhite = bmagenta = normal = "";
+    }
 
     tcc_exit_state(s1);
 
@@ -593,16 +597,22 @@ static void error1(int mode, const char *fmt, va_list ap)
     }
     if (f) {
         for(pf = s1->include_stack; pf < s1->include_stack_ptr; pf++)
-            cstr_printf(&cs, "In file included from %s:%d:\n",
-                (*pf)->filename, (*pf)->line_num - 1);
-        cstr_printf(&cs, "%s:%d: ",
-            f->filename, f->line_num - ((tok_flags & TOK_FLAG_BOL) && !macro_ptr));
+            cstr_printf(&cs, "In file included from %s%s:%d:%s\n",
+                bwhite,
+                (*pf)->filename, (*pf)->line_num - 1,
+                normal);
+        cstr_printf(&cs, "%s%s:%d:%s ",
+            bwhite,
+            f->filename, f->line_num - ((tok_flags & TOK_FLAG_BOL) && !macro_ptr),
+            normal);
     } else if (s1->current_filename) {
         cstr_printf(&cs, "%s: ", s1->current_filename);
     } else {
         cstr_printf(&cs, "tcc: ");
     }
+    cstr_printf(&cs, "%s", mode == ERROR_WARN ? bmagenta : bred);
     cstr_printf(&cs, mode == ERROR_WARN ? "warning: " : "error: ");
+    cstr_printf(&cs, "%s", normal);
     if (pp_expr > 1)
         pp_error(&cs); /* special handler for preprocessor expression errors */
     else
